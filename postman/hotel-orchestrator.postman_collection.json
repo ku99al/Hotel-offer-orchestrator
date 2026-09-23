@@ -1,0 +1,111 @@
+{
+  "info": {
+    "_postman_id": "c1f72a4e-128a-4412-8812-hotel-orchestrator",
+    "name": "Hotel Offer Orchestrator",
+    "description": "Collection for testing hotel suppliers and aggregated hotel offer orchestrator endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check service uptime and operational status."
+      },
+      "response": []
+    },
+    {
+      "name": "Supplier A - Get Hotels (Delhi)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/supplierA/hotels?city=delhi",
+          "host": ["{{baseUrl}}"],
+          "path": ["supplierA", "hotels"],
+          "query": [
+            {
+              "key": "city",
+              "value": "delhi"
+            }
+          ]
+        },
+        "description": "Retrieve hotels from Supplier A filtered by city."
+      },
+      "response": []
+    },
+    {
+      "name": "Supplier B - Get Hotels (Delhi)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/supplierB/hotels?city=delhi",
+          "host": ["{{baseUrl}}"],
+          "path": ["supplierB", "hotels"],
+          "query": [
+            {
+              "key": "city",
+              "value": "delhi"
+            }
+          ]
+        },
+        "description": "Retrieve hotels from Supplier B filtered by city."
+      },
+      "response": []
+    },
+    {
+      "name": "Orchestrated Hotels - Best Offers (Delhi)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/hotels?city=delhi",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "hotels"],
+          "query": [
+            {
+              "key": "city",
+              "value": "delhi"
+            }
+          ]
+        },
+        "description": "Retrieve aggregated and deduplicated hotel offers across suppliers with best rates and Redis caching."
+      },
+      "response": []
+    },
+    {
+      "name": "Supplier A - Unknown City Filter",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/supplierA/hotels?city=mumbai",
+          "host": ["{{baseUrl}}"],
+          "path": ["supplierA", "hotels"],
+          "query": [
+            {
+              "key": "city",
+              "value": "mumbai"
+            }
+          ]
+        },
+        "description": "Verify empty list returned when city does not match."
+      },
+      "response": []
+    }
+  ]
+}
