@@ -32,10 +32,13 @@ services:
       - REDIS_URL=redis://redis:6379
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_TASK_QUEUE=hotel-orchestrator-queue
+      - APP_BASE_URL=http://app:3000
     depends_on:
       temporal:
         condition: service_healthy
       redis:
+        condition: service_started
+      app:
         condition: service_started
     restart: unless-stopped
 

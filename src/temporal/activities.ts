@@ -1,23 +1,33 @@
 import { Hotel, AggregatedHotel, SupplierOffer } from '../types/hotel.types';
-import { supplierAHotels } from '../suppliers/supplierA.data';
-import { supplierBHotels } from '../suppliers/supplierB.data';
+
+const APP_BASE_URL = process.env.APP_BASE_URL || 'http://app:3000';
 
 export async function fetchSupplierA(city: string): Promise<Hotel[]> {
   console.log(`[Temporal Activity: fetchSupplierA] Querying Supplier A for city: "${city}"`);
-  const filtered = supplierAHotels.filter(
-    (h) => h.city.toLowerCase() === city.trim().toLowerCase()
-  );
-  console.log(`[Temporal Activity: fetchSupplierA] Retrieved ${filtered.length} hotels from Supplier A`);
-  return filtered;
+  try {
+    const response = await fetch(`${APP_BASE_URL}/supplierA/hotels?city=${encodeURIComponent(city)}`);
+    if (!response.ok) throw new Error(`Supplier A returned ${response.status}`);
+    const data = await response.json() as Hotel[];
+    console.log(`[Temporal Activity: fetchSupplierA] Retrieved ${data.length} hotels from Supplier A`);
+    return data;
+  } catch (error) {
+    console.error(`[Temporal Activity: fetchSupplierA] Error:`, (error as Error).message);
+    return [];
+  }
 }
 
 export async function fetchSupplierB(city: string): Promise<Hotel[]> {
   console.log(`[Temporal Activity: fetchSupplierB] Querying Supplier B for city: "${city}"`);
-  const filtered = supplierBHotels.filter(
-    (h) => h.city.toLowerCase() === city.trim().toLowerCase()
-  );
-  console.log(`[Temporal Activity: fetchSupplierB] Retrieved ${filtered.length} hotels from Supplier B`);
-  return filtered;
+  try {
+    const response = await fetch(`${APP_BASE_URL}/supplierB/hotels?city=${encodeURIComponent(city)}`);
+    if (!response.ok) throw new Error(`Supplier B returned ${response.status}`);
+    const data = await response.json() as Hotel[];
+    console.log(`[Temporal Activity: fetchSupplierB] Retrieved ${data.length} hotels from Supplier B`);
+    return data;
+  } catch (error) {
+    console.error(`[Temporal Activity: fetchSupplierB] Error:`, (error as Error).message);
+    return [];
+  }
 }
 
 export async function aggregateOffers(

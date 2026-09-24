@@ -83,7 +83,55 @@
             }
           ]
         },
-        "description": "Retrieve aggregated and deduplicated hotel offers across suppliers with best rates and Redis caching."
+        "description": "Retrieve aggregated and deduplicated hotel offers across suppliers with best rates, orchestrated via Temporal and cached in Redis."
+      },
+      "response": []
+    },
+    {
+      "name": "Orchestrated Hotels - Price Filter (Delhi, 3000-5000)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/hotels?city=delhi&minPrice=3000&maxPrice=5000",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "hotels"],
+          "query": [
+            {
+              "key": "city",
+              "value": "delhi"
+            },
+            {
+              "key": "minPrice",
+              "value": "3000"
+            },
+            {
+              "key": "maxPrice",
+              "value": "5000"
+            }
+          ]
+        },
+        "description": "Retrieve deduplicated hotel offers filtered by price range using Redis ZRANGEBYSCORE."
+      },
+      "response": []
+    },
+    {
+      "name": "Orchestrated Hotels - Unknown City (Mumbai)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/hotels?city=mumbai",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "hotels"],
+          "query": [
+            {
+              "key": "city",
+              "value": "mumbai"
+            }
+          ]
+        },
+        "description": "Verify empty array returned when no hotels match the requested city."
       },
       "response": []
     },

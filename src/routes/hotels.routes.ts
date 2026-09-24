@@ -14,7 +14,9 @@ const router = Router();
  *    - Sorted Set: key "hotels:<city>", member = hotel name, score = price
  *    - Hash: key "hotels:<city>:data", field = hotel name, value = JSON.stringify(hotel)
  * 3. If minPrice or maxPrice is provided, uses Redis ZRANGEBYSCORE to query hotel names
- *    within bounds and looks up full JSON objects from the hash.
+ *    within bounds and looks up full JSON objects from the hash. Filtering is done
+ *    exclusively via Redis — if Redis is unavailable during filtering, a 503 is returned
+ *    rather than silently falling back to in-memory filtering.
  * 4. If neither is provided, returns the full flattened array.
  */
 const handleGetHotels = async (req: Request, res: Response) => {
@@ -45,14 +47,12 @@ const handleGetHotels = async (req: Request, res: Response) => {
     if (redisClient) {
       try {
         if (flattenedResponse.length > 0) {
-          // Store in Sorted Set: key "hotels:<city>", member = hotel.name, score = hotel.price
           const sortedSetMembers = flattenedResponse.map((hotel) => ({
             score: hotel.price,
             value: hotel.name,
           }));
           await redisClient.zAdd(sortedSetKey, sortedSetMembers);
 
-          // Store full JSON per hotel in Redis Hash: key "hotels:<city>:data", field = hotel.name
           for (const hotel of flattenedResponse) {
             await redisClient.hSet(hashKey, hotel.name, JSON.stringify(hotel));
           }
@@ -68,39 +68,39 @@ const handleGetHotels = async (req: Request, res: Response) => {
     const hasMinPrice = minPriceQuery !== undefined && minPriceQuery !== '';
     const hasMaxPrice = maxPriceQuery !== undefined && maxPriceQuery !== '';
 
-    // 5. If minPrice or maxPrice is provided, filter using Redis ZRANGEBYSCORE + Hash lookup
+    // 5. If minPrice or maxPrice is provided, filter EXCLUSIVELY using Redis ZRANGEBYSCORE + Hash lookup.
+    // No in-memory fallback — if Redis is unavailable or errors here, return 503.
     if (hasMinPrice || hasMaxPrice) {
-      if (redisClient) {
-        try {
-          const min = hasMinPrice ? Number(minPriceQuery) : '-inf';
-          const max = hasMaxPrice ? Number(maxPriceQuery) : '+inf';
-
-          // Query sorted set with min/max bounds to get filtered hotel names
-          const filteredNames = await redisClient.zRangeByScore(sortedSetKey, min, max);
-
-          if (filteredNames.length === 0) {
-            return res.json([]);
-          }
-
-          // Look up each hotel's JSON from the hash
-          const hotelJsonStrings = await redisClient.hmGet(hashKey, filteredNames);
-          const filteredHotels: FlattenedHotelOffer[] = hotelJsonStrings
-            .filter((jsonStr): jsonStr is string => jsonStr !== null)
-            .map((jsonStr) => JSON.parse(jsonStr));
-
-          return res.json(filteredHotels);
-        } catch (redisFilterError) {
-          console.warn('[Redis] Error filtering by score from Redis:', (redisFilterError as Error).message);
-        }
+      if (!redisClient) {
+        return res.status(503).json({
+          error: 'Redis service unavailable',
+          message: 'Price filtering requires Redis, which is not currently connected.',
+        });
       }
 
-      // Fallback in-memory filter if Redis client is unavailable
-      const min = hasMinPrice ? Number(minPriceQuery) : -Infinity;
-      const max = hasMaxPrice ? Number(maxPriceQuery) : Infinity;
-      const memoryFiltered = flattenedResponse.filter(
-        (hotel) => hotel.price >= min && hotel.price <= max
-      );
-      return res.json(memoryFiltered);
+      try {
+        const min = hasMinPrice ? Number(minPriceQuery) : '-inf';
+        const max = hasMaxPrice ? Number(maxPriceQuery) : '+inf';
+
+        const filteredNames = await redisClient.zRangeByScore(sortedSetKey, min, max);
+
+        if (filteredNames.length === 0) {
+          return res.json([]);
+        }
+
+        const hotelJsonStrings = await redisClient.hmGet(hashKey, filteredNames);
+        const filteredHotels: FlattenedHotelOffer[] = hotelJsonStrings
+          .filter((jsonStr): jsonStr is string => jsonStr !== null)
+          .map((jsonStr) => JSON.parse(jsonStr));
+
+        return res.json(filteredHotels);
+      } catch (redisFilterError) {
+        console.error('[Redis] Error filtering by score from Redis:', (redisFilterError as Error).message);
+        return res.status(503).json({
+          error: 'Redis service unavailable',
+          message: (redisFilterError as Error).message,
+        });
+      }
     }
 
     // 6. If neither minPrice nor maxPrice is provided, return full flattened array

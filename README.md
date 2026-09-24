@@ -67,7 +67,7 @@ sequenceDiagram
 
 ### Step 1: Clone the Repository & Enter Directory
 ```bash
-git clone <repo-url>
+git clone https://github.com/ku99al/Hotel-offer-orchestrator.git
 cd hotel-offer-orchestrator
 ```
 
